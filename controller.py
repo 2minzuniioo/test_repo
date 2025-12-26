@@ -37,7 +37,7 @@ class Controller:
 
 def main():
     parser = argparse.ArgumentParser(description="Controller for Distributed System")
-    parser.add_argument('--region', type=str, default='$REGION', help='AWS Region')
+    parser.add_argument('--region', type=str, help='AWS Region')
     parser.add_argument('--worker-count', type=int, default=8, help='Number of worker nodes to wait for')
     args = parser.parse_args()
 
