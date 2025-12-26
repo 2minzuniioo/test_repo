@@ -5,29 +5,34 @@ import json
 import socket
 import argparse
 
-ec2 = boto3.client('ec2', region_name='$REGION')
 
-def get_running_workers():
-    # Find workers by Tag Name=worker-*
-    resp = ec2.describe_instances(Filters=[
-        {'Name': 'tag:Name', 'Values': ['worker-*']},
-        {'Name': 'instance-state-name', 'Values': ['running']}
-    ])
-    instances = []
-    for r in resp['Reservations']:
-        for i in r['Instances']:
-            instances.append(i)
-    return instances
+class Controller:
+    def __init__(self, region, target_count):
+        self.region = region
+        self.target_count = target_count
+        self.ec2 = boto3.client('ec2', region_name=region)
 
-def wait_for_workers(target_count=8):
-    print(f"Waiting for {target_count} workers to be RUNNING...")
-    while True:
-        workers = get_running_workers()
-        count = len(workers)
-        print(f"Current running workers: {count}/{target_count}")
-        if count >= target_count:
-            return workers
-        time.sleep(5)
+    def get_running_workers(self):
+        # Find workers by Tag Name=worker-*
+        resp = self.ec2.describe_instances(Filters=[
+            {'Name': 'tag:Name', 'Values': ['worker-*']},
+            {'Name': 'instance-state-name', 'Values': ['running']}
+        ])
+        instances = []
+        for r in resp['Reservations']:
+            for i in r['Instances']:
+                instances.append(i)
+        return instances
+
+    def wait_for_workers(self):
+        print(f"Waiting for {self.target_count} workers to be RUNNING...")
+        while True:
+            workers = self.get_running_workers()
+            count = len(workers)
+            print(f"Current running workers: {count}/{self.target_count}")
+            if count >= self.target_count:
+                return workers
+            time.sleep(5)
 
 
 def main():
@@ -36,8 +41,8 @@ def main():
     parser.add_argument('--worker-count', type=int, default=8, help='Number of worker nodes to wait for')
     args = parser.parse_args()
 
-
-    workers = wait_for_workers(args.worker_count)
+    controller = Controller(args.region, args.worker_count)
+    workers = controller.wait_for_workers()
     print(f"All {args.worker_count} workers are running.")
 
     # Collect IPs
